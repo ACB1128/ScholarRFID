@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,14 @@ import {
   ScrollView,
   Platform
 } from "react-native";
+import { supabase } from '../lib/supabase'
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { DataTable } from 'react-native-paper';
 
-export default function AuditLogsScreen() {
+export default  function AuditLogsScreen() {
   const router = useRouter();
 
   const [status, setStatus] = useState("");
@@ -32,6 +34,29 @@ export default function AuditLogsScreen() {
     setShowDate(false);
     if (selectedDate) setDate(selectedDate);
   };
+  const [logs, setLogs] = useState([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  fetchLogs();
+}, []);
+
+const fetchLogs = async () => {
+  try {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('auditlogs')
+      .select('*')
+      .order('id', { ascending: false });
+      
+    if (error) throw error;
+    if (data) setLogs(data);
+  } catch (error) {
+    console.error('Error fetching logs:', error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.container}>
@@ -118,12 +143,35 @@ export default function AuditLogsScreen() {
         </View>
 
         {/* TABLE HEADER */}
-        <View style={styles.tableHeader}>
-          <Text style={styles.tableText}>Student No.</Text>
-          <Text style={styles.tableText}>Date</Text>
-          <Text style={styles.tableText}>Login Time</Text>
-        </View>
+        
 
+          
+  <DataTable style={styles.wholeTable}>
+    <DataTable.Header style={styles.tableHeader}>
+      <DataTable.Title textStyle={styles.tableHeaderText}>Student No.</DataTable.Title>
+      <DataTable.Title textStyle={styles.tableHeaderText}>Date</DataTable.Title>
+      <DataTable.Title textStyle={styles.tableHeaderText}>Login Time</DataTable.Title>
+    </DataTable.Header>
+      
+   <ScrollView style={{ maxHeight: 300 }}>
+  {loading ? (
+    <Text style={{ textAlign: 'center', padding: 20 }}>Loading...</Text>
+  ) : (
+    logs.map((item) => (
+  <DataTable.Row key={item.id} style={styles.tableRow}>
+    <DataTable.Cell>{item.stdn_id || 'N/A'}</DataTable.Cell>
+    <DataTable.Cell>
+      {item.login_time ? new Date(item.login_time).toLocaleDateString() : 'N/A'}
+    </DataTable.Cell>
+    <DataTable.Cell>
+      {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
+    </DataTable.Cell>
+  </DataTable.Row>
+))
+  )}
+</ScrollView>
+
+  </DataTable>
       </ScrollView>
 
       {/* BOTTOM NAV */}
@@ -234,16 +282,25 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   tableHeader: {
-    backgroundColor: "#d9d9d9",
-    borderRadius: 20,
-    padding: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    backgroundColor: "#c0c0c0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#999",
+    
   },
-  tableText: {
+  tableRow: {
+    backgroundColor: "#d9d9d9",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    minHeight: 50, 
+  },
+  tableHeaderText: {
     fontWeight: "bold",
-    flex: 1,
-    textAlign: "center",
+    color: "#000",
+    fontSize: 14
+  },
+  wholeTable:{
+    borderRadius:20,
+    overflow: "hidden",
   },
   bottomNav: {
     flexDirection: "row",

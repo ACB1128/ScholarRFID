@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,73 +10,119 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { supabase } from '../lib/supabase';
 
 export default function Records() {
-  const [records, setRecords] = useState([
-    { id: "1", name: "Gil Fernando", number: "2314577", status: "Active" },
-    { id: "2", name: "Lalo Salamanca", number: "2314567", status: "Inactive" },
-  ]);
-
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editData, setEditData] = useState({});
   const [filter, setFilter] = useState("All");
-
-  // 🔥 ADD MODAL
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [newData, setNewData] = useState({
-    name: "",
-    number: "",
+    stdn_id: "",
+    stdn_firstname: "",
+    stdn_lastname: "",
+    stdn_email: "",
     status: "Active",
   });
-
-  // 🔥 DELETE MODAL
   const [deleteId, setDeleteId] = useState(null);
 
-  // FILTER
+  useEffect(() => {
+    fetchRecords();
+  }, []);
+
+  const fetchRecords = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('student')
+        .select('*')
+        .order('stdn_id', { ascending: true });
+
+      console.log('DATA:', data);
+      console.log('ERROR:', error);
+
+      if (error) throw error;
+      if (data) setRecords(data);
+    } catch (error) {
+      console.error('Fetch error:', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredRecords =
     filter === "All"
       ? records
       : records.filter((r) => r.status === filter);
 
-  // ================= ADD =================
-  const handleAdd = () => {
-    if (!newData.name || !newData.number) return;
+  const handleAdd = async () => {
+    if (!newData.stdn_firstname || !newData.stdn_id) return;
+    try {
+      const { error } = await supabase
+        .from('student')
+        .insert([{
+          stdn_id: newData.stdn_id,
+          stdn_firstname: newData.stdn_firstname,
+          stdn_lastname: newData.stdn_lastname,
+          stdn_email: newData.stdn_email,
+          status: newData.status,
+        }]);
 
-    const newRecord = {
-      id: Date.now().toString(),
-      ...newData,
-    };
-
-    setRecords([...records, newRecord]);
-    setAddModalVisible(false);
-    setNewData({ name: "", number: "", status: "Active" });
+      if (error) throw error;
+      setAddModalVisible(false);
+      setNewData({ stdn_id: "", stdn_firstname: "", stdn_lastname: "", stdn_email: "", status: "Active" });
+      fetchRecords();
+    } catch (error) {
+      console.error('Add error:', error.message);
+    }
   };
 
-  // ================= EDIT =================
   const startEdit = (item) => {
-    setEditingId(item.id);
+    setEditingId(item.stdn_id);
     setEditData(item);
   };
 
-  const saveEdit = () => {
-    setRecords(
-      records.map((item) =>
-        item.id === editingId ? { ...editData } : item
-      )
-    );
-    setEditingId(null);
+  const saveEdit = async () => {
+    try {
+      const { error } = await supabase
+        .from('student')
+        .update({
+          stdn_firstname: editData.stdn_firstname,
+          stdn_lastname: editData.stdn_lastname,
+          stdn_email: editData.stdn_email,
+          status: editData.status,
+        })
+        .eq('stdn_id', editingId);
+
+      if (error) throw error;
+      setEditingId(null);
+      fetchRecords();
+    } catch (error) {
+      console.error('Edit error:', error.message);
+    }
   };
 
   const cancelEdit = () => setEditingId(null);
 
-  // ================= DELETE =================
-  const confirmDelete = () => {
-    setRecords(records.filter((item) => item.id !== deleteId));
-    setDeleteId(null);
+  const confirmDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('student')
+        .delete()
+        .eq('stdn_id', deleteId);
+
+      if (error) throw error;
+      setDeleteId(null);
+      fetchRecords();
+    } catch (error) {
+      console.error('Delete error:', error.message);
+    }
   };
 
   const renderItem = ({ item }) => {
-    const isEditing = editingId === item.id;
+    const isEditing = editingId === item.stdn_id;
 
     return (
       <View style={styles.card}>
@@ -84,31 +130,32 @@ export default function Records() {
           <>
             <TextInput
               style={styles.input}
-              value={editData.name}
-              onChangeText={(text) =>
-                setEditData({ ...editData, name: text })
-              }
+              value={editData.stdn_firstname}
+              placeholder="First Name"
+              onChangeText={(text) => setEditData({ ...editData, stdn_firstname: text })}
             />
             <TextInput
               style={styles.input}
-              value={editData.number}
-              onChangeText={(text) =>
-                setEditData({ ...editData, number: text })
-              }
+              value={editData.stdn_lastname}
+              placeholder="Last Name"
+              onChangeText={(text) => setEditData({ ...editData, stdn_lastname: text })}
+            />
+            <TextInput
+              style={styles.input}
+              value={editData.stdn_email}
+              placeholder="Email"
+              onChangeText={(text) => setEditData({ ...editData, stdn_email: text })}
             />
             <TextInput
               style={styles.input}
               value={editData.status}
-              onChangeText={(text) =>
-                setEditData({ ...editData, status: text })
-              }
+              placeholder="Status"
+              onChangeText={(text) => setEditData({ ...editData, status: text })}
             />
-
             <View style={styles.actions}>
               <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
                 <Text style={styles.btnText}>Save</Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.cancelBtn} onPress={cancelEdit}>
                 <Text style={styles.btnText}>Cancel</Text>
               </TouchableOpacity>
@@ -117,27 +164,25 @@ export default function Records() {
         ) : (
           <>
             <Text style={styles.label}>
-              Student Name: <Text style={styles.value}>{item.name}</Text>
+              Student Name:{" "}
+              <Text style={styles.value}>
+                {item.stdn_firstname} {item.stdn_lastname}
+              </Text>
             </Text>
             <Text style={styles.label}>
-              Student No.: <Text style={styles.value}>{item.number}</Text>
+              Student No.: <Text style={styles.value}>{item.stdn_id}</Text>
+            </Text>
+            <Text style={styles.label}>
+              Email: <Text style={styles.value}>{item.stdn_email}</Text>
             </Text>
             <Text style={styles.label}>
               Status: <Text style={styles.value}>{item.status}</Text>
             </Text>
-
             <View style={styles.actions}>
-              <TouchableOpacity
-                style={styles.editBtn}
-                onPress={() => startEdit(item)}
-              >
+              <TouchableOpacity style={styles.editBtn} onPress={() => startEdit(item)}>
                 <Text style={styles.btnText}>Edit</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={() => setDeleteId(item.id)}
-              >
+              <TouchableOpacity style={styles.deleteBtn} onPress={() => setDeleteId(item.stdn_id)}>
                 <Text style={styles.btnText}>Delete</Text>
               </TouchableOpacity>
             </View>
@@ -153,12 +198,7 @@ export default function Records() {
       <View style={styles.header}>
         <Ionicons name="shield-checkmark" size={24} color="#fff" />
         <Text style={styles.headerTitle}>RECORDS</Text>
-
-        {/* ➕ ADD BUTTON */}
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={() => setAddModalVisible(true)}
-        >
+        <TouchableOpacity style={styles.addBtn} onPress={() => setAddModalVisible(true)}>
           <Ionicons name="add" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
@@ -169,23 +209,14 @@ export default function Records() {
           <Ionicons name="filter" size={14} />
           <Text style={{ marginLeft: 5 }}>Filter</Text>
         </View>
-
         <View style={styles.dropdownRow}>
           {["All", "Active", "Inactive"].map((item) => (
             <TouchableOpacity
               key={item}
-              style={[
-                styles.filterOption,
-                filter === item && styles.filterSelected,
-              ]}
+              style={[styles.filterOption, filter === item && styles.filterSelected]}
               onPress={() => setFilter(item)}
             >
-              <Text
-                style={{
-                  color: filter === item ? "#fff" : "#000",
-                  fontSize: 12,
-                }}
-              >
+              <Text style={{ color: filter === item ? "#fff" : "#000", fontSize: 12 }}>
                 {item}
               </Text>
             </TouchableOpacity>
@@ -195,55 +226,57 @@ export default function Records() {
 
       {/* LIST */}
       <View style={styles.listContainer}>
-        <FlatList
-          data={filteredRecords}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.divider} />}
-        />
+        {loading ? (
+          <Text style={{ textAlign: 'center', padding: 20 }}>Loading...</Text>
+        ) : (
+          <FlatList
+            data={filteredRecords}
+            keyExtractor={(item) => item.stdn_id?.toString()}
+            renderItem={renderItem}
+            ItemSeparatorComponent={() => <View style={styles.divider} />}
+          />
+        )}
       </View>
 
-      {/* 🔥 ADD MODAL */}
+      {/* ADD MODAL */}
       <Modal transparent visible={addModalVisible} animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Add Student</Text>
-
             <TextInput
               style={styles.input}
-              placeholder="Name"
-              value={newData.name}
-              onChangeText={(text) =>
-                setNewData({ ...newData, name: text })
-              }
+              placeholder="Student ID"
+              value={newData.stdn_id}
+              onChangeText={(text) => setNewData({ ...newData, stdn_id: text })}
             />
-
             <TextInput
               style={styles.input}
-              placeholder="Student No."
-              value={newData.number}
-              onChangeText={(text) =>
-                setNewData({ ...newData, number: text })
-              }
+              placeholder="First Name"
+              value={newData.stdn_firstname}
+              onChangeText={(text) => setNewData({ ...newData, stdn_firstname: text })}
             />
-
+            <TextInput
+              style={styles.input}
+              placeholder="Last Name"
+              value={newData.stdn_lastname}
+              onChangeText={(text) => setNewData({ ...newData, stdn_lastname: text })}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={newData.stdn_email}
+              onChangeText={(text) => setNewData({ ...newData, stdn_email: text })}
+            />
             <TextInput
               style={styles.input}
               placeholder="Status (Active/Inactive)"
               value={newData.status}
-              onChangeText={(text) =>
-                setNewData({ ...newData, status: text })
-              }
+              onChangeText={(text) => setNewData({ ...newData, status: text })}
             />
-
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setAddModalVisible(false)}
-              >
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setAddModalVisible(false)}>
                 <Text style={styles.btnText}>Cancel</Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={styles.saveBtn} onPress={handleAdd}>
                 <Text style={styles.btnText}>Add</Text>
               </TouchableOpacity>
@@ -260,19 +293,11 @@ export default function Records() {
             <Text style={styles.modalText}>
               Are you sure you want to delete this record?
             </Text>
-
             <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelBtn}
-                onPress={() => setDeleteId(null)}
-              >
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setDeleteId(null)}>
                 <Text style={styles.btnText}>Cancel</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={confirmDelete}
-              >
+              <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
                 <Text style={styles.btnText}>Delete</Text>
               </TouchableOpacity>
             </View>
@@ -282,16 +307,14 @@ export default function Records() {
 
       {/* NAV */}
       <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => router.push("/Dashboard")}>
-          <Ionicons name="home-outline" size={20} />
+        <TouchableOpacity onPress={() => router.push("/Dashboard")} style={styles.navItem}>
+          <Ionicons name="home-outline" size={20} color="#666" />
           <Text style={styles.navText}>Home</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity onPress={() => router.push("/audit_log")}>
-          <Ionicons name="document-text-outline" size={20} />
+        <TouchableOpacity onPress={() => router.push("/audit_log")} style={styles.navItem}>
+          <Ionicons name="document-text-outline" size={20} color="#666" />
           <Text style={styles.navText}>Logs</Text>
         </TouchableOpacity>
-
         <View style={styles.navActive}>
           <Ionicons name="person-outline" size={20} color="#fff" />
           <Text style={styles.navActiveText}>Records</Text>
@@ -301,8 +324,6 @@ export default function Records() {
   );
 }
 
-/* ================= STYLES ================= */
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -310,7 +331,6 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingHorizontal: 15,
   },
-
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -328,7 +348,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 6,
   },
-
   filterCard: {
     backgroundColor: "#D9D9D9",
     borderRadius: 15,
@@ -340,7 +359,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 10,
   },
-
   dropdownRow: {
     flexDirection: "row",
     gap: 8,
@@ -354,18 +372,15 @@ const styles = StyleSheet.create({
   filterSelected: {
     backgroundColor: "#1A4D5F",
   },
-
   listContainer: {
     backgroundColor: "#D9D9D9",
     borderRadius: 15,
     padding: 12,
     flex: 1,
   },
-
   card: {
     paddingVertical: 10,
   },
-
   label: {
     fontWeight: "bold",
     fontSize: 13,
@@ -373,7 +388,6 @@ const styles = StyleSheet.create({
   value: {
     fontWeight: "normal",
   },
-
   input: {
     backgroundColor: "#fff",
     borderRadius: 8,
@@ -381,14 +395,12 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontSize: 12,
   },
-
   actions: {
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: 8,
     marginTop: 8,
   },
-
   editBtn: {
     backgroundColor: "#3B82F6",
     paddingHorizontal: 12,
@@ -413,18 +425,15 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 6,
   },
-
   btnText: {
     color: "#fff",
     fontSize: 12,
   },
-
   divider: {
     height: 1,
     backgroundColor: "#999",
     marginVertical: 10,
   },
-
   bottomNav: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -433,23 +442,25 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginVertical: 10,
   },
-
+  navItem: {
+    alignItems: "center",
+  },
   navText: {
     fontSize: 12,
+    color: "#666",
     textAlign: "center",
   },
-
   navActive: {
     alignItems: "center",
     backgroundColor: "#1A4D5F",
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
     borderRadius: 20,
   },
   navActiveText: {
     color: "#fff",
     fontSize: 12,
   },
-
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
