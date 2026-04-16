@@ -306,20 +306,27 @@ export default function Records() {
       </Modal>
 
       {/* NAV */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => router.push("/Dashboard")} style={styles.navItem}>
-          <Ionicons name="home-outline" size={20} color="#666" />
-          <Text style={styles.navText}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push("/audit_log")} style={styles.navItem}>
-          <Ionicons name="document-text-outline" size={20} color="#666" />
-          <Text style={styles.navText}>Logs</Text>
-        </TouchableOpacity>
-        <View style={styles.navActive}>
-          <Ionicons name="person-outline" size={20} color="#fff" />
-          <Text style={styles.navActiveText}>Records</Text>
-        </View>
-      </View>
+<View style={styles.bottomNav}>
+  <TouchableOpacity onPress={() => router.push("/Dashboard")} style={styles.navItem}>
+    <Ionicons name="home-outline" size={20} color="#666" />
+    <Text style={styles.navText}>Home</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={() => router.push("/audit_log")} style={styles.navItem}>
+    <Ionicons name="document-text-outline" size={20} color="#666" />
+    <Text style={styles.navText}>Logs</Text>
+  </TouchableOpacity>
+
+  <View style={styles.navActive}>
+    <Ionicons name="person-outline" size={20} color="#fff" />
+    <Text style={styles.navActiveText}>Records</Text>
+  </View>
+
+  <TouchableOpacity onPress={() => router.push("/computer")} style={styles.navItem}>
+    <Ionicons name="desktop-outline" size={20} color="#666" />
+    <Text style={styles.navText}>Computer</Text>
+  </TouchableOpacity>
+</View>
     </View>
   );
 }

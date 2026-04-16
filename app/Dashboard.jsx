@@ -15,25 +15,16 @@ import { DataTable } from 'react-native-paper';
 const Dashboard = () => {
 
   const [records, setRecords] = useState([])
-  const [logs, setLogs] = useState([])
 
-  // 🔹 Fetch initial data
-  const fetchData = async () => {
-    const { data: recordData } = await supabase
-      .from('records')
-      .select('*')
-      .order('id', { ascending: false })
-      .limit(5)
+const fetchData = async () => {
+  const { data: recordData } = await supabase
+    .from('records')
+    .select('*')
+    .order('id', { ascending: false })
+    .limit(5);
 
-    const { data: logData } = await supabase
-      .from('audit_log')
-      .select('*')
-      .order('id', { ascending: false })
-      .limit(5)
-
-    if (recordData) setRecords(recordData)
-    if (logData) setLogs(logData)
-  }
+  if (recordData) setRecords(recordData);
+};
 const [aulogs, setauLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   // 🔹 Real-time updates
@@ -81,7 +72,13 @@ const fetchLogs = async () => {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
 
-        <Text style={styles.headerTitle}>DASHBOARD</Text>
+        <View style={styles.headerRow}>
+  <Text style={styles.headerTitle}>DASHBOARD</Text>
+
+  <TouchableOpacity style={styles.logoutTopBtn} onPress={handleLogout}>
+    <Text style={styles.logoutTopText}>LOG OUT</Text>
+  </TouchableOpacity>
+</View>
 
         <View style={styles.welcomeRow}>
           <Ionicons name="shield-checkmark" size={60} color="#00C2FF" />
@@ -119,31 +116,37 @@ const fetchLogs = async () => {
           <Text style={{ textAlign: 'center', padding: 20 }}>Loading...</Text>
         ) : (
           aulogs.map((item) => (
-            <DataTable.Row key={item.id} style={styles.tableRow}>
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.stdn_id || 'N/A'}
-              </DataTable.Cell>
+           <DataTable.Row key={item.id} style={styles.tableRow}>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.stdn_id || 'N/A'}
+  </DataTable.Cell>
 
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleDateString() : 'N/A'}
-              </DataTable.Cell>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.login_time
+      ? new Date(item.login_time).toLocaleDateString()
+      : 'N/A'}
+  </DataTable.Cell>
 
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.login_time
+      ? new Date(item.login_time).toLocaleTimeString()
+      : 'N/A'}
+  </DataTable.Cell>
 
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.logout_time ? new Date(item.logout_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
-              
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.validity || 'N/A'}
-              </DataTable.Cell>
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
-              {/* Add your other cells here */}
-            </DataTable.Row>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.logout_time
+      ? new Date(item.logout_time).toLocaleTimeString()
+      : 'N/A'}
+  </DataTable.Cell>
+
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.validity || 'N/A'}
+  </DataTable.Cell>
+
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.remarks || 'N/A'}
+  </DataTable.Cell>
+</DataTable.Row>
           ))
         )}
       </ScrollView>
@@ -152,12 +155,6 @@ const fetchLogs = async () => {
   
 </ScrollView> 
 </DataTable>   
-
-        {logs.map((log) => (
-          <View key={log.id} style={styles.card}>
-            <Text>{log.action || "Log entry"}</Text>
-          </View>
-        ))}
 
         {/* 🔹 RECENT RECORDS */}
         <View style={styles.sectionHeader}>
@@ -174,12 +171,36 @@ const fetchLogs = async () => {
         ))}
 
       </ScrollView>
+ <View style={styles.bottomNav}>
+  <View style={styles.navActive}>
+    <Ionicons name="home-outline" size={20} color="#fff" />
+    <Text style={styles.navActiveText}>Home</Text>
+  </View>
 
-      {/* LOGOUT */}
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Text style={styles.logoutText}>LOG OUT</Text>
-      </TouchableOpacity>
+  <TouchableOpacity
+    onPress={() => router.push("/audit_log")}
+    style={styles.navItem}
+  >
+    <Ionicons name="document-text-outline" size={20} color="#666" />
+    <Text style={styles.navText}>Logs</Text>
+  </TouchableOpacity>
 
+  <TouchableOpacity
+    onPress={() => router.push("/records")}
+    style={styles.navItem}
+  >
+    <Ionicons name="person-outline" size={20} color="#666" />
+    <Text style={styles.navText}>Records</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() => router.push("/computer")}
+    style={styles.navItem}
+  >
+    <Ionicons name="desktop-outline" size={20} color="#666" />
+    <Text style={styles.navText}>Computer</Text>
+  </TouchableOpacity>
+</View>
     </View>
   );
 };
@@ -316,4 +337,36 @@ const styles = StyleSheet.create({
     borderRadius:20,
     overflow: "hidden",
   },
+  headerRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: 20,
+},
+
+logoutTopBtn: {
+  backgroundColor: "#ff4d4d",
+  paddingHorizontal: 15,
+  paddingVertical: 8,
+  borderRadius: 20,
+},
+
+logoutTopText: {
+  color: "#fff",
+  fontWeight: "bold",
+  fontSize: 12,
+},
+
+navActive: {
+  alignItems: "center",
+  backgroundColor: "#1A4D5F",
+  paddingVertical: 8,
+  paddingHorizontal: 20,
+  borderRadius: 20,
+},
+
+navActiveText: {
+  color: "#fff",
+  fontSize: 12,
+},
 })

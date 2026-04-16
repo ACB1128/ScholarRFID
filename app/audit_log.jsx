@@ -21,7 +21,7 @@ export default  function AuditLogsScreen() {
   const [status, setStatus] = useState("");
   const [time, setTime] = useState(null);
   const [date, setDate] = useState(null);
-
+const [studentNo, setStudentNo] = useState("");
   const [showTime, setShowTime] = useState(false);
   const [showDate, setShowDate] = useState(false);
 
@@ -39,25 +39,61 @@ const [loading, setLoading] = useState(true);
 
 useEffect(() => {
   fetchLogs();
-}, []);
+}, [studentNo, status, date, time]);
 
 const fetchLogs = async () => {
   try {
     setLoading(true);
-    const { data, error } = await supabase
+
+    let query = supabase
       .from('auditlogs')
       .select('*')
       .order('id', { ascending: false });
-      
+
+if (studentNo.trim() !== "") {
+  const parsedStudentNo = Number(studentNo);
+
+  if (!isNaN(parsedStudentNo)) {
+    query = query.eq('stdn_id', parsedStudentNo);
+  }
+}
+
+if (status !== "") {
+  query = query.ilike('validity', status);
+}
+if (date) {
+  const selectedDate = date.toISOString().split('T')[0];
+
+  query = query
+    .gte('login_time', `${selectedDate}T00:00:00`)
+    .lte('login_time', `${selectedDate}T23:59:59`);
+}
+
+if (time && !isNaN(time.getTime())) {
+  const selectedHour = time.getHours();
+  const selectedMinute = time.getMinutes();
+
+  const baseDate = date
+    ? date.toISOString().split('T')[0]
+    : new Date().toISOString().split('T')[0];
+
+  query = query.gte(
+    'login_time',
+    `${baseDate}T${String(selectedHour).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}:00`
+  );
+}
+
+const { data, error } = await query;
+
     if (error) throw error;
-    if (data) setLogs(data);
+
+    setLogs(data || []);
   } catch (error) {
     console.error('Error fetching logs:', error.message);
   } finally {
     setLoading(false);
   }
 };
-
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -73,10 +109,12 @@ const fetchLogs = async () => {
 
           <View style={styles.row}>
             <TextInput
-              placeholder="Student No."
-              style={styles.input}
-              placeholderTextColor="#666"
-            />
+  placeholder="Student No."
+  style={styles.input}
+  placeholderTextColor="#666"
+  value={studentNo}
+  onChangeText={setStudentNo}
+/>
 
             <View style={styles.pickerContainer}>
               <Picker
@@ -92,30 +130,30 @@ const fetchLogs = async () => {
           </View>
 
           {/* TIME & DATE */}
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={() => setShowTime(true)}
-            >
-              <Text style={styles.dropdownText}>
-                {time
-                  ? time.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Select Time"}
-              </Text>
-            </TouchableOpacity>
+<View style={styles.row}>
+  <TouchableOpacity
+    style={styles.dropdown}
+    onPress={() => setShowTime(true)}
+  >
+    <Text style={styles.dropdownText}>
+      {time
+        ? time.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "Select Time"}
+    </Text>
+  </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={() => setShowDate(true)}
-            >
-              <Text style={styles.dropdownText}>
-                {date ? date.toLocaleDateString() : "Select Date"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+  <TouchableOpacity
+    style={styles.dropdown}
+    onPress={() => setShowDate(true)}
+  >
+    <Text style={styles.dropdownText}>
+      {date ? date.toLocaleDateString() : "Select Date"}
+    </Text>
+  </TouchableOpacity>
+</View>
 
           {/* PICKERS */}
           {showTime && (
@@ -136,9 +174,9 @@ const fetchLogs = async () => {
             />
           )}
 
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>APPLY</Text>
-          </TouchableOpacity>
+<TouchableOpacity style={styles.button} onPress={fetchLogs}>
+  <Text style={styles.buttonText}>APPLY</Text>
+</TouchableOpacity>
         </View>
 
         {/* TABLE HEADER */}
@@ -164,31 +202,37 @@ const fetchLogs = async () => {
           <Text style={{ textAlign: 'center', padding: 20 }}>Loading...</Text>
         ) : (
           logs.map((item) => (
-            <DataTable.Row key={item.id} style={styles.tableRow}>
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.stdn_id || 'N/A'}
-              </DataTable.Cell>
+<DataTable.Row key={item.id} style={styles.tableRow}>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.stdn_id || 'N/A'}
+  </DataTable.Cell>
 
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleDateString() : 'N/A'}
-              </DataTable.Cell>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.login_time
+      ? new Date(item.login_time).toLocaleDateString()
+      : 'N/A'}
+  </DataTable.Cell>
 
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.login_time
+      ? new Date(item.login_time).toLocaleTimeString()
+      : 'N/A'}
+  </DataTable.Cell>
 
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.logout_time ? new Date(item.logout_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
-              
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.validity || 'N/A'}
-              </DataTable.Cell>
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
-              {/* Add your other cells here */}
-            </DataTable.Row>
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.logout_time
+      ? new Date(item.logout_time).toLocaleTimeString()
+      : 'N/A'}
+  </DataTable.Cell>
+
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.validity || 'N/A'}
+  </DataTable.Cell>
+
+  <DataTable.Cell style={{ width: 120 }}>
+    {item.remarks || 'N/A'}
+  </DataTable.Cell>
+</DataTable.Row>
           ))
         )}
       </ScrollView>

@@ -2,57 +2,46 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Platform
 } from "react-native";
 import { supabase } from '../lib/supabase'
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { DataTable } from 'react-native-paper';
 
-export default  function AuditLogsScreen() {
+export default function ComputerScreen(){
   const router = useRouter();
-
-  const [status, setStatus] = useState("");
-  const [time, setTime] = useState(null);
-  const [date, setDate] = useState(null);
-
-  const [showTime, setShowTime] = useState(false);
-  const [showDate, setShowDate] = useState(false);
-
-  const onTimeChange = (event, selectedTime) => {
-    setShowTime(false);
-    if (selectedTime) setTime(selectedTime);
-  };
-
-  const onDateChange = (event, selectedDate) => {
-    setShowDate(false);
-    if (selectedDate) setDate(selectedDate);
-  };
-  const [logs, setLogs] = useState([]);
-const [loading, setLoading] = useState(true);
+  const [computers, setComputers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
 useEffect(() => {
-  fetchLogs();
+  fetchComputers();
 }, []);
 
-const fetchLogs = async () => {
+const fetchComputers = async () => {
   try {
     setLoading(true);
+
     const { data, error } = await supabase
-      .from('auditlogs')
-      .select('*')
-      .order('id', { ascending: false });
-      
+      .from('computers')
+      .select(`
+        id,
+        currentuser,
+        student:student!computers_currentuser_fkey (
+          stdn_firstname,
+          stdn_lastname
+        )
+      `)
+      .order('id', { ascending: true });
+
     if (error) throw error;
-    if (data) setLogs(data);
+
+    if (data) setComputers(data);
+
   } catch (error) {
-    console.error('Error fetching logs:', error.message);
+    console.error('Error fetching computers:', error.message);
   } finally {
     setLoading(false);
   }
@@ -64,139 +53,57 @@ const fetchLogs = async () => {
 
         {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>AUDIT LOGS</Text>
+          <Text style={styles.headerTitle}>COMPUTERS</Text>
         </View>
 
-        {/* FILTER CARD */}
-        <View style={styles.card}>
-          <Text style={styles.filterTitle}>Filter</Text>
+{loading ? (
+  <Text style={{ color: "#fff", textAlign: "center" }}>Loading...</Text>
+) : (
+  <DataTable style={styles.wholeTable}>
 
-          <View style={styles.row}>
-            <TextInput
-              placeholder="Student No."
-              style={styles.input}
-              placeholderTextColor="#666"
-            />
+      <View style={{ width: "100%" }}>
 
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={status}
-                onValueChange={(itemValue) => setStatus(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select Status" value="" />
-                <Picker.Item label="Valid" value="valid" />
-                <Picker.Item label="Invalid" value="invalid" />
-              </Picker>
-            </View>
-          </View>
+        <DataTable.Header style={styles.tableHeader}>
+<DataTable.Title style={{ flex: 0.8 }}>PC</DataTable.Title>
+<DataTable.Title style={{ flex: 2 }}>User</DataTable.Title>
+<DataTable.Title style={{ flex: 1.3 }}>ID</DataTable.Title>
+<DataTable.Title style={{ flex: 1.5 }}>Status</DataTable.Title>
+        </DataTable.Header>
 
-          {/* TIME & DATE */}
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={() => setShowTime(true)}
-            >
-              <Text style={styles.dropdownText}>
-                {time
-                  ? time.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Select Time"}
-              </Text>
-            </TouchableOpacity>
+        {computers.map((computer) => (
+<DataTable.Row key={computer.id} style={styles.tableRow}>
+  <DataTable.Cell style={{ flex: 0.8 }}>
+    {computer.id}
+  </DataTable.Cell>
 
-            <TouchableOpacity
-              style={styles.dropdown}
-              onPress={() => setShowDate(true)}
-            >
-              <Text style={styles.dropdownText}>
-                {date ? date.toLocaleDateString() : "Select Date"}
-              </Text>
-            </TouchableOpacity>
-          </View>
+  <DataTable.Cell style={{ flex: 2 }}>
+    <Text numberOfLines={1} ellipsizeMode="tail">
+      {computer.student
+        ? `${computer.student.stdn_firstname} ${computer.student.stdn_lastname}`
+        : "No Active User"}
+    </Text>
+  </DataTable.Cell>
 
-          {/* PICKERS */}
-          {showTime && (
-            <DateTimePicker
-              value={time || new Date()}
-              mode="time"
-              display="default"
-              onChange={onTimeChange}
-            />
-          )}
+  <DataTable.Cell style={{ flex: 1.3 }}>
+    {computer.currentuser || "N/A"}
+  </DataTable.Cell>
 
-          {showDate && (
-            <DateTimePicker
-              value={date || new Date()}
-              mode="date"
-              display="default"
-              onChange={onDateChange}
-            />
-          )}
+  <DataTable.Cell style={{ flex: 1.5 }}>
+    <Text
+      style={{
+        color: computer.currentuser ? "red" : "green",
+        fontWeight: "bold",
+      }}
+    >
+      {computer.currentuser ? "Occupied" : "Available"}
+    </Text>
+  </DataTable.Cell>
+</DataTable.Row>
+        ))}
 
-          <TouchableOpacity style={styles.button}>
-            <Text style={styles.buttonText}>APPLY</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* TABLE HEADER */}
-        
-<DataTable style={styles.wholeTable}>
-   <ScrollView 
-  horizontal={true} 
-  showsHorizontalScrollIndicator={true} 
->
-  <View style={{ width: 1890 }}> 
-    
-      <DataTable.Header style={styles.tableHeader}>
-        <DataTable.Title style={{ width: 120 }}>Student No.</DataTable.Title>
-        <DataTable.Title style={{ width: 120 }}>Date</DataTable.Title>
-        <DataTable.Title style={{ width: 120 }}>Login Time</DataTable.Title>
-        <DataTable.Title style={{ width: 120 }}>Logout Time</DataTable.Title>
-        <DataTable.Title style={{ width: 120 }}>Validity</DataTable.Title>
-        <DataTable.Title style={{ width: 120 }}>Remarks</DataTable.Title>
-      </DataTable.Header>
-        
-      <ScrollView style={{ maxHeight: 400 }}>
-        {loading ? (
-          <Text style={{ textAlign: 'center', padding: 20 }}>Loading...</Text>
-        ) : (
-          logs.map((item) => (
-            <DataTable.Row key={item.id} style={styles.tableRow}>
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.stdn_id || 'N/A'}
-              </DataTable.Cell>
-
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleDateString() : 'N/A'}
-              </DataTable.Cell>
-
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
-
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.logout_time ? new Date(item.logout_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
-              
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.validity || 'N/A'}
-              </DataTable.Cell>
-              <DataTable.Cell style={{ width: 120 }}>
-                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
-              </DataTable.Cell>
-              {/* Add your other cells here */}
-            </DataTable.Row>
-          ))
-        )}
-      </ScrollView>
-    
-  </View>
-  
-</ScrollView> 
-</DataTable>   
+      </View>
+  </DataTable>
+)}
       </ScrollView>
 
       {/* BOTTOM NAV */}
@@ -210,7 +117,7 @@ const fetchLogs = async () => {
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => router.push("/audit_log")} style={styles.navItem}>
-                  <Ionicons name="document-text-outline" size={20} color="#666" />
+                 <Ionicons name="document-text-outline" size={20} color="#666" />
                   <Text style={styles.navText}>Logs</Text>
                 </TouchableOpacity>
 
@@ -358,4 +265,35 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
   },
+  computerCard: {
+  backgroundColor: "#D9D9D9",
+  borderRadius: 20,
+  padding: 15,
+  marginBottom: 15,
+},
+
+computerTitle: {
+  fontSize: 18,
+  fontWeight: "bold",
+  marginBottom: 10,
+},
+
+computerText: {
+  fontSize: 14,
+  marginBottom: 5,
+},
+wholeTable: {
+  borderRadius: 20,
+  overflow: "hidden",
+},
+
+tableHeader: {
+  backgroundColor: "#C0C0C0",
+},
+
+tableRow: {
+  backgroundColor: "#D9D9D9",
+  borderBottomWidth: 1,
+  borderBottomColor: "#CCC",
+},
 });
