@@ -38,7 +38,7 @@ const [aulogs, setauLogs] = useState([]);
   
 
   return () => clearInterval(interval)
-}, [])
+}, [])git remote add origin https://github.com/ACB1128/ScholarRFID.git
 useEffect(() => {
   fetchLogs();
 }, []);
