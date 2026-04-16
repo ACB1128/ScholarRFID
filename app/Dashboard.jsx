@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { supabase } from "../lib/supabase";
+import { DataTable } from 'react-native-paper';
 
 const Dashboard = () => {
 
@@ -33,7 +34,8 @@ const Dashboard = () => {
     if (recordData) setRecords(recordData)
     if (logData) setLogs(logData)
   }
-
+const [aulogs, setauLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
   // 🔹 Real-time updates
   useEffect(() => {
   fetchData()
@@ -42,10 +44,33 @@ const Dashboard = () => {
     console.log('Refreshing data...')
     fetchData()
   }, 3000)
+  
 
   return () => clearInterval(interval)
 }, [])
+useEffect(() => {
+  fetchLogs();
+}, []);
 
+const fetchLogs = async () => {
+  try {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('auditlogs')
+      .select('*')
+      .order('id', { ascending: false })
+      .limit(5);
+      
+      
+    if (error) throw error;
+    if (data) setauLogs(data);
+    
+  } catch (error) {
+    console.error('Error fetching logs:', error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   // 🔹 Logout
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -73,6 +98,60 @@ const Dashboard = () => {
             <Text style={styles.viewText}>VIEW ALL</Text>
           </TouchableOpacity>
         </View>
+        <DataTable style={[styles.wholeTable, { marginTop: 18 }]}>
+   <ScrollView 
+  horizontal={true} 
+  showsHorizontalScrollIndicator={true} 
+>
+  <View style={{ width: 1890 }}> 
+    
+      <DataTable.Header style={styles.tableHeader}>
+        <DataTable.Title style={{ width: 120 }}>Student No.</DataTable.Title>
+        <DataTable.Title style={{ width: 120 }}>Date</DataTable.Title>
+        <DataTable.Title style={{ width: 120 }}>Login Time</DataTable.Title>
+        <DataTable.Title style={{ width: 120 }}>Logout Time</DataTable.Title>
+        <DataTable.Title style={{ width: 120 }}>Validity</DataTable.Title>
+        <DataTable.Title style={{ width: 120 }}>Remarks</DataTable.Title>
+      </DataTable.Header>
+        
+      <ScrollView style={{ maxHeight: 400 }}>
+        {loading ? (
+          <Text style={{ textAlign: 'center', padding: 20 }}>Loading...</Text>
+        ) : (
+          aulogs.map((item) => (
+            <DataTable.Row key={item.id} style={styles.tableRow}>
+              <DataTable.Cell style={{ width: 120 }}>
+                {item.stdn_id || 'N/A'}
+              </DataTable.Cell>
+
+              <DataTable.Cell style={{ width: 120 }}>
+                {item.login_time ? new Date(item.login_time).toLocaleDateString() : 'N/A'}
+              </DataTable.Cell>
+
+              <DataTable.Cell style={{ width: 120 }}>
+                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
+              </DataTable.Cell>
+
+              <DataTable.Cell style={{ width: 120 }}>
+                {item.logout_time ? new Date(item.logout_time).toLocaleTimeString() : 'N/A'}
+              </DataTable.Cell>
+              
+              <DataTable.Cell style={{ width: 120 }}>
+                {item.validity || 'N/A'}
+              </DataTable.Cell>
+              <DataTable.Cell style={{ width: 120 }}>
+                {item.login_time ? new Date(item.login_time).toLocaleTimeString() : 'N/A'}
+              </DataTable.Cell>
+              {/* Add your other cells here */}
+            </DataTable.Row>
+          ))
+        )}
+      </ScrollView>
+    
+  </View>
+  
+</ScrollView> 
+</DataTable>   
 
         {logs.map((log) => (
           <View key={log.id} style={styles.card}>
@@ -215,5 +294,26 @@ const styles = StyleSheet.create({
   logoutText: { 
     color: "#fff", 
     fontWeight: "bold" 
+  },
+  tableHeader: {
+    backgroundColor: "#c0c0c0",
+    borderBottomWidth: 1,
+    borderBottomColor: "#999",
+    
+  },
+  tableRow: {
+    backgroundColor: "#d9d9d9",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc",
+    minHeight: 50, 
+  },
+  tableHeaderText: {
+    fontWeight: "bold",
+    color: "#000",
+    fontSize: 14
+  },
+  wholeTable:{
+    borderRadius:20,
+    overflow: "hidden",
   },
 })

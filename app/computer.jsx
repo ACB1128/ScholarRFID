@@ -209,10 +209,10 @@ const fetchLogs = async () => {
           <Text style={styles.navText}>Home</Text>
         </TouchableOpacity>
 
-        <View style={styles.navActive}>
-          <Ionicons name="document-text-outline" size={20} color="#fff" />
-          <Text style={styles.navActiveText}>Logs</Text>
-        </View>
+        <TouchableOpacity onPress={() => router.push("/audit_log")} style={styles.navItem}>
+                  <Ionicons name="document-text-outline" size={20} color="#666" />
+                  <Text style={styles.navText}>Logs</Text>
+                </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => router.push("/records")}
@@ -221,13 +221,11 @@ const fetchLogs = async () => {
           <Ionicons name="person-outline" size={20} color="#666" />
           <Text style={styles.navText}>Records</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => router.push("/computer")}
-          style={styles.navItem}
-        >
-          <Ionicons name="home-outline" size={20} color="#666" />
-          <Text style={styles.navText}>Computer</Text>
-        </TouchableOpacity>
+        
+        <View style={styles.navActive}>
+          <Ionicons name="document-text-outline" size={20} color="#fff" />
+          <Text style={styles.navActiveText}>Computer</Text>
+        </View>
       </View>
     </View>
   );
